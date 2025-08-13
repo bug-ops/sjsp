@@ -20,45 +20,82 @@ pub mod domain;
 pub mod error;
 pub mod frame;
 pub mod infrastructure;
+pub mod memory;
 pub mod parser;
+pub mod security;
 pub mod semantic;
 pub mod stream;
 
 // Domain layer exports
 pub use domain::{
-    DomainError, DomainEvent, DomainResult, Frame as DomainFrame, JsonPath, Priority, SessionId,
-    Stream, StreamId, StreamSession,
+    DomainError,
+    DomainEvent,
+    DomainResult,
+    Frame as DomainFrame,
+    JsonPath,
+    Priority,
+    SessionId,
+    Stream,
+    StreamId,
+    StreamSession,
+    // GAT-based domain ports (zero-cost async abstractions)
+    ports::{
+        EventPublisherGat, FrameSinkGat, FrameSinkGatExt, FrameSourceGat, StreamRepositoryGat,
+        StreamStoreGat,
+    },
+    services::{
+        GatOrchestratorFactory, GatStreamingOrchestrator, HealthStatus, OrchestratorConfig,
+    },
 };
 
-// Events exports  
+// Events exports
 pub use domain::events::{PriorityDistribution, PriorityPercentages};
 
-// Application layer exports
+// Application layer exports (some temporarily disabled for GAT migration)
 pub use application::{
-    ApplicationError, ApplicationResult, commands,
-    handlers::{CommandHandler, QueryHandler},
+    ApplicationError,
+    ApplicationResult,
+    commands,
+    // handlers::{CommandHandler, QueryHandler}, // Disabled: migrate to GAT when implementing CQRS
     queries,
-    services::{SessionService, StreamingService},
+    // services::{SessionService, StreamingService}, // Disabled: replaced by SessionManager
 };
 
 // Configuration exports
-pub use config::{ParserConfig, PjsConfig, SimdConfig, StreamingConfig};
+pub use config::{
+    ParserConfig, PjsConfig, SecurityConfig, SimdConfig, StreamingConfig,
+    security::{BufferLimits, JsonLimits, NetworkLimits, RateLimitingConfig, SessionLimits},
+};
 
 // Compression exports
 pub use compression::{
     CompressedData, CompressionConfig, CompressionStrategy, SchemaAnalyzer, SchemaCompressor,
+    secure::{
+        DecompressionContextStats, SecureCompressedData, SecureCompressor,
+        SecureDecompressionContext,
+    },
 };
 
 // Streaming exports
-pub use stream::{
-    CompressedFrame, CompressionStats, DecompressionMetadata, DecompressionStats,
-    ProcessResult, StreamConfig, StreamFrame, StreamProcessor, StreamStats,
-    StreamingCompressor, StreamingDecompressor, PriorityStreamer, JsonReconstructor,
-};
 pub use error::{Error, Result};
 pub use frame::{Frame, FrameFlags, FrameHeader};
-pub use parser::{ParseConfig, ParseStats, Parser};
+#[cfg(any(feature = "websocket-client", feature = "websocket-server"))]
+pub use infrastructure::websocket::SecureWebSocketHandler;
+pub use memory::{ArenaJsonParser, CombinedArenaStats, JsonArena};
+pub use parser::{
+    LazyParser, ParseConfig, ParseStats, Parser, SimpleParser, SonicParser, ZeroCopyParser,
+};
+pub use security::{
+    CompressionBombConfig, CompressionBombDetector, CompressionBombProtector,
+    CompressionStats as BombCompressionStats, DepthTracker, RateLimitConfig, RateLimitError,
+    RateLimitGuard, RateLimitStats, SecurityValidator, WebSocketRateLimiter,
+};
 pub use semantic::{SemanticMeta, SemanticType};
+pub use stream::{
+    CompressedFrame, CompressionStats, DecompressionMetadata, DecompressionStats,
+    JsonReconstructor, PriorityStreamer, ProcessResult, StreamConfig, StreamFrame, StreamProcessor,
+    StreamStats, StreamingCompressor, StreamingDecompressor,
+};
 // Legacy stream exports (will be deprecated)
 // pub use stream::{
 //     JsonPath as StreamJsonPath, JsonReconstructor, Priority as StreamPriority, PriorityStreamer,
@@ -71,7 +108,7 @@ pub mod prelude {
         ApplicationError,
         // Application layer
         ApplicationResult,
-        CommandHandler,
+        // CommandHandler, // TODO: migrate to GAT
         DomainError,
         DomainEvent,
         DomainFrame,
@@ -90,16 +127,16 @@ pub mod prelude {
         PriorityPercentages,
         // PriorityStreamer,
         ProcessResult,
-        QueryHandler,
+        // QueryHandler, // TODO: migrate to GAT
         Result,
         SemanticMeta,
         SemanticType,
         SessionId,
-        SessionService,
+        // SessionService, // TODO: migrate to GAT
         Stream,
         StreamId,
         StreamProcessor,
         StreamSession,
-        StreamingService,
+        // StreamingService, // TODO: migrate to GAT
     };
 }
